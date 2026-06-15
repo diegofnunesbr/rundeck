@@ -1,0 +1,2 @@
+[linux]
+vm-ubuntu ansible_host=192.168.0.4 ansible_user=rundeck ansible_python_interpreter=/usr/bin/python3

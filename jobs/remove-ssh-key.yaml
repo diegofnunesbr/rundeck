@@ -1,0 +1,45 @@
+---
+- name: remove-ssh-key
+  description: |
+    Revoke SSH access from a Linux user on target VM(s).
+
+    Reads the user's SSH keys directly from ~/.ssh/authorized_keys on each target host,
+    removes them from /root/.ssh/authorized_keys, and deletes the user account along with
+    the home directory.
+
+    No Key Storage dependency — works for any existing Linux user.
+    Idempotent: no-op when the user is already absent.
+  group: access
+  loglevel: INFO
+  executionEnabled: true
+  scheduleEnabled: false
+  options:
+    - name: target_hosts
+      required: true
+      description: |
+        Inventory pattern. Single hostname, IP, comma-separated list, or group tag.
+        Examples: `hostname`, `hostname1,hostname2`, `linux`.
+    - name: linux_username
+      required: true
+      description: |
+        Linux username(s) to revoke. Single value or comma-separated list.
+        Examples: user1  or  user1,user2,user3
+  sequence:
+    keepgoing: false
+    strategy: node-first
+    commands:
+      - description: Remove SSH access for ${option.linux_username}
+        type: com.batix.rundeck.plugins.AnsiblePlaybookWorkflowStep
+        nodeStep: false
+        configuration:
+          ansible-playbook: remove-ssh-key.yml
+          ansible-base-dir-path: ${globals.ansible_dir}
+          ansible-generate-inventory: 'false'
+          ansible-disable-limit: 'true'
+          ansible-extra-param: >-
+            -e target_hosts=${option.target_hosts}
+            -e linux_username=${option.linux_username}
+          ansible-ssh-user: rundeck
+          ansible-ssh-key-storage-path: keys/project/foundation/ssh-key
+          ansible-become: 'true'
+  uuid: b4e2d3c5-9c6f-5a8b-0d1f-2e3f4a5b6c7d

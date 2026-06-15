@@ -1,0 +1,71 @@
+---
+- name: add-ssh-key
+  description: |
+    Grant SSH access to a Linux user on target VM(s).
+
+    Creates the user account (if it does not exist), adds to the sudo group with NOPASSWD:ALL,
+    and installs the SSH public key in ~/.ssh/authorized_keys and /root/.ssh/authorized_keys.
+
+    The SSH public key is automatically fetched from Rundeck Key Storage at:
+      keys/project/foundation/<linux_username>
+
+    The key must be stored there as Password type before running this job.
+
+    Idempotent: re-running with the same user/key is a no-op.
+  group: access
+  loglevel: INFO
+  executionEnabled: true
+  scheduleEnabled: false
+  options:
+    - name: target_hosts
+      required: true
+      description: |
+        Inventory pattern. Single hostname, IP, comma-separated list, or group tag.
+        Examples: `hostname`, `hostname1,hostname2`, `linux`.
+    - name: linux_username
+      required: true
+      description: |
+        Linux system username to create/update.
+        This is the OS-level account name (e.g. user1, user2).
+        The SSH public key must be stored in Key Storage at keys/project/foundation/<linux_username>.
+    - name: ssh_public_key
+      required: true
+      secure: true
+      valueExposed: true
+      hidden: true
+      storagePath: keys/project/foundation/${option.linux_username}
+      description: |
+        SSH public key auto-fetched from keys/project/foundation/<linux_username> in Key Storage.
+  sequence:
+    keepgoing: false
+    strategy: node-first
+    commands:
+      - description: Write SSH key to temp file
+        script: |
+          #!/bin/bash
+          set -e
+          umask 077
+          printf 'ssh_public_key: %s\n' '@option.ssh_public_key@' > /tmp/rd_pub_key_@option.linux_username@_@execution.id@
+
+      - description: Add SSH access for ${option.linux_username}
+        type: com.batix.rundeck.plugins.AnsiblePlaybookWorkflowStep
+        nodeStep: false
+        configuration:
+          ansible-playbook: add-ssh-key.yml
+          ansible-base-dir-path: ${globals.ansible_dir}
+          ansible-generate-inventory: 'false'
+          ansible-disable-limit: 'true'
+          ansible-extra-param: >-
+            -e target_hosts=${option.target_hosts}
+            -e linux_username=${option.linux_username}
+            -e @/tmp/rd_pub_key_${option.linux_username}_${execution.id}
+          ansible-ssh-user: rundeck
+          ansible-ssh-key-storage-path: keys/project/foundation/ssh-key
+          ansible-become: 'true'
+        errorhandler:
+          script: "rm -f /tmp/rd_pub_key_@option.linux_username@_@execution.id@"
+          keepgoingOnSuccess: false
+
+      - description: Cleanup temp file
+        script: "rm -f /tmp/rd_pub_key_@option.linux_username@_@execution.id@"
+  uuid: a3f1c2d4-8b5e-4f7a-9c0e-1d2e3f4a5b6c

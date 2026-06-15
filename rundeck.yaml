@@ -1,0 +1,122 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rundeck
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: rundeck-data
+  namespace: rundeck
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rundeck
+  namespace: rundeck
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: rundeck
+
+  template:
+    metadata:
+      labels:
+        app: rundeck
+
+    spec:
+      containers:
+        - name: rundeck
+          image: rundeck-ansible:local
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 4440
+
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - |
+                    until [ -f /home/rundeck/etc/framework.properties ]; do sleep 1; done
+                    sleep 3
+                    grep -q "framework.globals.ansible_dir" /home/rundeck/etc/framework.properties || \
+                      echo "framework.globals.ansible_dir = /home/rundeck/ansible" >> /home/rundeck/etc/framework.properties
+
+          env:
+            - name: PATH
+              value: "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+            - name: ANSIBLE_INVENTORY
+              value: /home/rundeck/inventory/hosts
+
+            - name: ANSIBLE_HOST_KEY_CHECKING
+              value: "False"
+
+            - name: RUNDECK_SERVER_ADDRESS
+              value: 0.0.0.0
+
+            - name: RUNDECK_SERVER_NAME
+              value: rundeck
+
+          volumeMounts:
+            - name: ssh-key
+              mountPath: /home/rundeck/.ssh/rundeck
+              subPath: rundeck
+              readOnly: true
+
+            - name: ansible-playbooks
+              mountPath: /home/rundeck/ansible
+
+            - name: ansible-inventory
+              mountPath: /home/rundeck/inventory
+              readOnly: true
+
+            - name: rundeck-data
+              mountPath: /home/rundeck/server/data
+
+      volumes:
+        - name: ssh-key
+          secret:
+            secretName: rundeck-ssh-key
+            defaultMode: 0440
+
+        - name: ansible-playbooks
+          hostPath:
+            path: ANSIBLE_DIR
+            type: Directory
+
+        - name: ansible-inventory
+          hostPath:
+            path: INVENTORY_DIR
+            type: Directory
+
+        - name: rundeck-data
+          persistentVolumeClaim:
+            claimName: rundeck-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rundeck
+  namespace: rundeck
+spec:
+  type: NodePort
+  selector:
+    app: rundeck
+  ports:
+    - port: 4440
+      targetPort: 4440
+      nodePort: 30440

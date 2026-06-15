@@ -1,0 +1,15 @@
+rundeck:
+  nodename: rundeck
+  hostname: localhost
+  username: rundeck
+  tags: server
+  osFamily: unix
+  osName: Linux
+
+vm-ubuntu:
+  nodename: vm-ubuntu
+  hostname: 192.168.0.4
+  username: rundeck
+  tags: linux
+  osFamily: unix
+  osName: Linux

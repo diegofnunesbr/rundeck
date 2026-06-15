@@ -1,0 +1,62 @@
+---
+- name: Validate target_hosts
+  hosts: localhost
+  gather_facts: no
+  tasks:
+    - name: Fail if no hosts matched target_hosts='{{ target_hosts }}'
+      ansible.builtin.assert:
+        that: query('inventory_hostnames', target_hosts) | length > 0
+        fail_msg: "No hosts matched target_hosts='{{ target_hosts }}'. Check the inventory pattern."
+
+- name: Revoke SSH access
+  hosts: "linux:&{{ target_hosts | default('all') }}"
+  become: true
+  gather_facts: false
+
+  tasks:
+
+    - name: Check if users exist
+      ansible.builtin.command: id "{{ item }}"
+      register: user_checks
+      failed_when: false
+      changed_when: false
+      loop: "{{ linux_username.split(',') | list }}"
+      loop_control:
+        label: "{{ item }}"
+
+    - name: Read authorized_keys for each user
+      ansible.builtin.slurp:
+        src: "/home/{{ item.item }}/.ssh/authorized_keys"
+      register: user_keys_files
+      loop: "{{ user_checks.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      failed_when: false
+
+    - name: Collect SSH keys to remove from root
+      ansible.builtin.set_fact:
+        keys_to_remove: >-
+          {{ keys_to_remove | default([]) +
+             ((item.content | b64decode).split('\n')
+              | select('match', '^(ssh-|ecdsa-)') | list) }}
+      loop: "{{ user_keys_files.results }}"
+      when: item.content is defined
+      loop_control:
+        label: "{{ item.item.item }}"
+
+    - name: Remove user keys from root authorized_keys
+      ansible.posix.authorized_key:
+        user: root
+        key: "{{ item }}"
+        state: absent
+      loop: "{{ keys_to_remove | default([]) }}"
+      when: keys_to_remove is defined
+
+    - name: Delete user accounts and home directories
+      ansible.builtin.user:
+        name: "{{ item.item }}"
+        state: absent
+        remove: true
+      loop: "{{ user_checks.results }}"
+      loop_control:
+        label: "{{ item.item }}"

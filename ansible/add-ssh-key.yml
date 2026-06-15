@@ -1,0 +1,39 @@
+---
+- name: Grant SSH access
+  hosts: "{{ target_hosts }}"
+  become: true
+  gather_facts: false
+
+  tasks:
+
+    - name: Check if user exists
+      ansible.builtin.command: id "{{ linux_username }}"
+      register: user_check
+      failed_when: false
+      changed_when: false
+
+    - name: Create user
+      ansible.builtin.user:
+        name: "{{ linux_username }}"
+        shell: /bin/bash
+        create_home: true
+        state: present
+      when: user_check.rc != 0
+
+    - name: Add user to sudo group
+      ansible.builtin.user:
+        name: "{{ linux_username }}"
+        groups: sudo
+        append: true
+
+    - name: Install SSH public key
+      ansible.posix.authorized_key:
+        user: "{{ linux_username }}"
+        key: "{{ ssh_public_key }}"
+        state: present
+
+    - name: Install SSH public key for root
+      ansible.posix.authorized_key:
+        user: root
+        key: "{{ ssh_public_key }}"
+        state: present
