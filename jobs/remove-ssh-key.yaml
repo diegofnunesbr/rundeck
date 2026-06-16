@@ -22,8 +22,8 @@
     - name: linux_username
       required: true
       description: |
-        Linux username(s) to revoke. Single value or comma-separated list.
-        Examples: user1  or  user1,user2,user3
+        Linux username to revoke. Single username only.
+        Example: user1
   sequence:
     keepgoing: false
     strategy: node-first
