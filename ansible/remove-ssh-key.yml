@@ -1,13 +1,4 @@
 ---
-- name: Validate target_hosts
-  hosts: localhost
-  gather_facts: no
-  tasks:
-    - name: Fail if no hosts matched target_hosts='{{ target_hosts }}'
-      ansible.builtin.assert:
-        that: query('inventory_hostnames', target_hosts) | length > 0
-        fail_msg: "No hosts matched target_hosts='{{ target_hosts }}'. Check the inventory pattern."
-
 - name: Revoke SSH access
   hosts: "linux:&{{ target_hosts | default('all') }}"
   become: true
@@ -51,6 +42,14 @@
         state: absent
       loop: "{{ keys_to_remove | default([]) }}"
       when: keys_to_remove is defined
+
+    - name: Kill user processes
+      ansible.builtin.command: pkill -KILL -u "{{ item.item }}"
+      failed_when: false
+      changed_when: false
+      loop: "{{ user_checks.results }}"
+      loop_control:
+        label: "{{ item.item }}"
 
     - name: Delete user accounts and home directories
       ansible.builtin.user:
