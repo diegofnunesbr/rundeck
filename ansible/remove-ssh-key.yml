@@ -52,10 +52,9 @@
         label: "{{ item.item }}"
 
     - name: Delete user accounts and home directories
-      ansible.builtin.user:
-        name: "{{ item.item }}"
-        state: absent
-        remove: true
+      ansible.builtin.command: userdel -rf "{{ item.item }}"
+      failed_when: false
+      changed_when: false
       loop: "{{ user_checks.results }}"
       loop_control:
         label: "{{ item.item }}"
