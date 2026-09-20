@@ -54,6 +54,11 @@ O script faz o build da imagem Docker, gera a chave SSH, cria os recursos no Kub
 
 ## Preparar hosts
 
+VMs criadas pelo repositório `terraform` já nascem prontas (o cloud-init
+de lá inclui essa mesma chave automaticamente) - esse passo manual só é
+necessário pra hosts que não passaram por aquele fluxo (ex.: uma VM já
+existente antes, ou criada manualmente).
+
 Para cada host que o Rundeck vai gerenciar via SSH, instale a chave pública gerada pelo `deploy.sh`. Repita para cada novo host adicionado ao inventário.
 
 Ajuste as variáveis antes de executar:
