@@ -36,7 +36,7 @@
           ansible-base-dir-path: ${globals.ansible_dir}
           ansible-generate-inventory: 'false'
           ansible-disable-limit: 'true'
-          ansible-extra-param: -e target_hosts=${option.target_hosts}
+          ansible-extra-param: -e target_hosts=${option.target_hosts} -e node_name=${option.node_name}
           ansible-ssh-user: rundeck
           ansible-ssh-key-storage-path: keys/project/foundation/ssh-key
           ansible-become: 'true'
