@@ -103,12 +103,27 @@ curl -s -b "$COOKIE_JAR" -X POST -H "Content-Type: application/json" \
   -d '{"name":"foundation"}' "$API/projects"
 ```
 
-# 3. Configurar node source e globals
+# 3. Configurar node source, globals e autenticação SSH
 ```bash
-CONFIG='{"project.name":"foundation","globals.ansible_dir":"/home/rundeck/ansible","resources.source.1.type":"file","resources.source.1.config.file":"/home/rundeck/inventory/nodes.yaml","resources.source.1.config.format":"resourceyaml","resources.source.1.config.generateFileAutomatically":"false","resources.source.1.config.includeServerNode":"true"}'
+CONFIG='{"project.name":"foundation","globals.ansible_dir":"/home/rundeck/ansible","resources.source.1.type":"file","resources.source.1.config.file":"/home/rundeck/inventory/nodes.yaml","resources.source.1.config.format":"resourceyaml","resources.source.1.config.generateFileAutomatically":"false","resources.source.1.config.includeServerNode":"true","project.ssh-authentication":"privateKey","project.ssh-key-storage-path":"keys/project/foundation/ssh-key","project.ssh-user":"rundeck"}'
 curl -s -b "$COOKIE_JAR" -X PUT -H "Content-Type: application/json" \
   -d "$CONFIG" "$API/project/foundation/config"
 ```
+
+As três chaves `project.ssh-*` são pro **executor SSH nativo** do Rundeck
+(usado pelos comandos ad-hoc em "Commands" e por qualquer job que não seja
+`AnsiblePlaybookWorkflowStep`) - sem elas, esses comandos falham com
+`Unknown: /home/rundeck/.ssh/id_rsa (No such file or directory)`, mesmo
+com os jobs de Ansible funcionando normalmente (o plugin Ansible tem sua
+própria config de chave, `ansible-ssh-key-storage-path`, independente
+dessa).
+
+**Atenção:** `PUT .../config` substitui o arquivo de config inteiro, não
+faz merge. Se for atualizar só uma propriedade depois (ex.: adicionar essa
+config de SSH numa instalação já existente), busque a config atual com
+`GET .../config` primeiro e reenvie **todas** as chaves - um `PUT` parcial
+apaga o resto (aconteceu no onboarding do observability: um PUT só com as
+chaves `ssh-*` zerou o `resources.source` e sumiu com os nodes).
 
 # 4. Adicionar chave SSH ao Key Storage
 ```bash
