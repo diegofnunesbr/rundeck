@@ -140,6 +140,35 @@ de forma permanente (não só pra aquele run), e (2) instala `node_exporter`
 repositório `mimir`) - a VM aparece com métricas no Grafana logo após o
 onboarding, sem passo manual.
 
+## Verificar o onboarding
+
+```bash
+ssh rundeck@<ip-da-vm> "systemctl is-active prometheus-node-exporter alloy"
+curl -s -G 'http://<ip-do-node-k0s>:30900/prometheus/api/v1/query' \
+  --data-urlencode 'query=up{host="<ip-da-vm>"}'
+```
+
+## Troubleshooting: "Permission denied (publickey,password)" no onboard-vm
+
+Se o job falhar com esse erro mesmo com a VM alcançável, a causa mais
+comum é a chave pública em `/home/rundeck/.ssh/authorized_keys` da VM
+estar desatualizada em relação à `keys/rundeck.pub` atual (acontece se
+`keys/` foi regenerada em algum momento sem reinstalar a chave em todo
+mundo). Corrija reinstalando a chave certa na VM e reenviando a privada
+pro Key Storage do Rundeck:
+
+```bash
+ssh "$HOST_ADMIN@$HOST_IP" "
+  sudo sh -c 'cat > /home/rundeck/.ssh/authorized_keys' < keys/rundeck.pub
+  sudo chown rundeck:rundeck /home/rundeck/.ssh/authorized_keys
+  sudo chmod 600 /home/rundeck/.ssh/authorized_keys
+"
+
+curl -s -b "$COOKIE_JAR" -X PUT \
+  -H "Content-Type: application/octet-stream" -H "X-Rundeck-Data-Type: private" \
+  --data-binary @keys/rundeck "$API/storage/keys/project/foundation/ssh-key"
+```
+
 ## Remoção
 
 ```bash
