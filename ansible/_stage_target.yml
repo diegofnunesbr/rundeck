@@ -1,0 +1,27 @@
+---
+# Shared staging play - resolve o "ovo e a galinha" do onboarding: uma VM
+# nova ainda não está no inventário estático. O operador passa
+# target_hosts=<ip> como extra-var; esse play registra o host
+# dinamicamente só pra esse run. Reruns (host já conhecido no inventário)
+# saem cedo via meta: end_play.
+#
+# Importado pelos playbooks de onboarding via:
+#   - import_playbook: _stage_target.yml
+#
+# O underscore no nome sinaliza "não é um runbook chamável diretamente" -
+# os Jobs do Rundeck em jobs/ nunca apontam pra esse arquivo direto.
+
+- name: Stage target_hosts into an ad-hoc group
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Skip staging when target_hosts is already known
+      ansible.builtin.meta: end_play
+      when: >-
+        target_hosts in groups
+        or target_hosts in (groups['all'] | default([]))
+
+    - name: Add target host to inventory for this run
+      ansible.builtin.add_host:
+        name: "{{ target_hosts }}"
+        ansible_host: "{{ target_hosts }}"

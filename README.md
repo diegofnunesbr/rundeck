@@ -13,12 +13,17 @@ Rundeck é uma plataforma de automação de operações que permite criar, agend
 ```
 rundeck/
 ├── ansible/                  # Playbooks Ansible
+│   ├── _stage_target.yml     # registra um host dinamicamente pra um run (onboarding)
+│   ├── onboard-vm.yml        # integra VM nova (usa _stage_target.yml)
 │   ├── add-ssh-key.yml
 │   ├── remove-ssh-key.yml
+├── docs/                     # runbooks em markdown, um por procedimento
+│   └── new-vm-provisioning.md
 ├── inventory/                # Hosts e nodes do ambiente
 │   ├── hosts                 # Inventário Ansible
 │   └── nodes.yaml            # Nodes visíveis no Rundeck
 ├── jobs/                     # Definições de jobs do Rundeck
+│   ├── onboard-vm.yaml
 │   ├── add-ssh-key.yaml
 │   ├── remove-ssh-key.yaml
 ├── keys/                     # Chave SSH (gerada pelo deploy.sh, ignorada pelo git)
@@ -111,6 +116,12 @@ done
 
 rm -f "$COOKIE_JAR"
 ```
+
+## Integrar uma VM nova
+
+Ver [`docs/new-vm-provisioning.md`](docs/new-vm-provisioning.md) - fluxo
+completo desde o `terraform apply` até a VM integrada via job
+`onboard-vm`, sem precisar cadastrar ela no inventário antes.
 
 ## Remoção
 

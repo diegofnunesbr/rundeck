@@ -1,0 +1,19 @@
+---
+- import_playbook: _stage_target.yml
+
+- name: Configuração básica de VM nova
+  hosts: "{{ target_hosts }}"
+  become: true
+  tasks:
+    - name: Atualizar cache de pacotes
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Garantir pacotes básicos instalados
+      ansible.builtin.apt:
+        name:
+          - curl
+          - git
+          - htop
+        state: present
