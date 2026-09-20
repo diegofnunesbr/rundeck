@@ -4,9 +4,12 @@ Rundeck é uma plataforma de automação de operações que permite criar, agend
 
 ## Pré-requisitos
 
-- Kubernetes
-- kubectl
-- Docker
+- Kubernetes (k0s, single-node)
+- kubectl, Docker
+- **`deploy.sh` precisa rodar direto no node do cluster** (ex.: `vm-ubuntu`),
+  não numa máquina remota - os volumes `ansible-playbooks`/`ansible-inventory`
+  em `rundeck.yaml` são `hostPath`, ou seja, apontam pro filesystem do node
+  onde o pod é agendado, não pra máquina de onde você roda o `deploy.sh`.
 
 ## Estrutura do repositório
 

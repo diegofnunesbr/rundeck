@@ -10,6 +10,9 @@ if ! docker image inspect rundeck-ansible:local &>/dev/null; then
   docker build -t rundeck-ansible:local "$SCRIPT_DIR"
 fi
 
+echo "==> Importando imagem para o containerd do k0s..."
+docker save rundeck-ansible:local | sudo k0s ctr images import -
+
 echo "==> Verificando chave SSH..."
 mkdir -p "$KEYS_DIR"
 if [ ! -f "$KEYS_DIR/rundeck" ]; then
