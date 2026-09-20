@@ -19,6 +19,11 @@
       description: |
         IP ou hostname da VM nova a integrar. Não precisa já estar no
         inventário - o playbook registra dinamicamente pra esse run.
+    - name: node_name
+      required: false
+      description: |
+        Nome do node como vai aparecer no Rundeck. Se vazio, usa o
+        próprio valor de target_hosts.
   sequence:
     keepgoing: false
     strategy: node-first

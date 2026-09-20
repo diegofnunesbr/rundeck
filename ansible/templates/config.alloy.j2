@@ -1,0 +1,15 @@
+prometheus.scrape "node" {
+  targets = [{"__address__" = "localhost:9100"}]
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "{{ mimir_remote_write_url }}"
+  }
+
+  external_labels = {
+    host = "{{ inventory_hostname }}",
+    env  = "homelab",
+  }
+}

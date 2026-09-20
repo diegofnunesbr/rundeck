@@ -82,7 +82,6 @@ spec:
 
             - name: ansible-inventory
               mountPath: /home/rundeck/inventory
-              readOnly: true
 
             - name: rundeck-data
               mountPath: /home/rundeck/server/data

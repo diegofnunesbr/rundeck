@@ -17,7 +17,10 @@ Rundeck é uma plataforma de automação de operações que permite criar, agend
 rundeck/
 ├── ansible/                  # Playbooks Ansible
 │   ├── _stage_target.yml     # registra um host dinamicamente pra um run (onboarding)
-│   ├── onboard-vm.yml        # integra VM nova (usa _stage_target.yml)
+│   ├── onboard-vm.yml        # integra VM nova (usa _stage_target.yml e install-alloy.yml)
+│   ├── install-alloy.yml     # instala node_exporter + Grafana Alloy (remote_write pro Mimir)
+│   ├── templates/
+│   │   └── config.alloy.j2
 │   ├── add-ssh-key.yml
 │   ├── remove-ssh-key.yml
 ├── docs/                     # runbooks em markdown, um por procedimento
@@ -130,6 +133,12 @@ rm -f "$COOKIE_JAR"
 Ver [`docs/new-vm-provisioning.md`](docs/new-vm-provisioning.md) - fluxo
 completo desde o `terraform apply` até a VM integrada via job
 `onboard-vm`, sem precisar cadastrar ela no inventário antes.
+
+O job também: (1) grava a VM em `inventory/nodes.yaml` e `inventory/hosts`
+de forma permanente (não só pra aquele run), e (2) instala `node_exporter`
++ Grafana Alloy configurado com `remote_write` pro Mimir do homelab (ver
+repositório `mimir`) - a VM aparece com métricas no Grafana logo após o
+onboarding, sem passo manual.
 
 ## Remoção
 

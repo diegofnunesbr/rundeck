@@ -17,3 +17,32 @@
           - git
           - htop
         state: present
+
+- import_playbook: install-alloy.yml
+
+- name: Registrar VM onboardada no inventário do Rundeck
+  hosts: localhost
+  gather_facts: false
+  vars:
+    resolved_node_name: "{{ node_name | default('') | trim }}"
+    node_key: "{{ resolved_node_name if resolved_node_name else target_hosts }}"
+  tasks:
+    - name: Adicionar entrada em inventory/nodes.yaml
+      ansible.builtin.blockinfile:
+        path: "{{ playbook_dir }}/../inventory/nodes.yaml"
+        marker: "# {mark} node {{ node_key }}"
+        block: |
+          {{ node_key }}:
+            nodename: {{ node_key }}
+            hostname: {{ target_hosts }}
+            username: rundeck
+            tags: linux
+            osFamily: unix
+            osName: Linux
+
+    - name: Adicionar entrada em inventory/hosts
+      ansible.builtin.lineinfile:
+        path: "{{ playbook_dir }}/../inventory/hosts"
+        insertafter: "^\\[linux\\]"
+        line: "{{ node_key }} ansible_host={{ target_hosts }} ansible_user=rundeck ansible_python_interpreter=/usr/bin/python3"
+        regexp: "^{{ node_key }} ansible_host="
