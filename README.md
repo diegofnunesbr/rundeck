@@ -10,6 +10,11 @@ Rundeck é uma plataforma de automação de operações que permite criar, agend
   não numa máquina remota - os volumes `ansible-playbooks`/`ansible-inventory`
   em `rundeck.yaml` são `hostPath`, ou seja, apontam pro filesystem do node
   onde o pod é agendado, não pra máquina de onde você roda o `deploy.sh`.
+- `cert-manager` e `ingress-nginx` instalados (repositório `cert-manager`
+  e `core-config` do repositório `argocd`) e DNS `rundeck.diegofnunesbr.com`
+  apontando pro node (repositório `dns`) - **não são pré-requisito pra
+  rodar `deploy.sh`**, só pra `https://rundeck.diegofnunesbr.com` ficar
+  acessível depois. Sem eles, use port-forward (seção "Configuração").
 
 ## Estrutura do repositório
 
@@ -87,14 +92,20 @@ ssh "$HOST_ADMIN@$HOST_IP" "
 
 ## Configuração
 
+O Service é `ClusterIP` (sem NodePort) - use port-forward pra rodar os
+comandos abaixo, numa aba de terminal separada:
+
+```bash
+kubectl -n rundeck port-forward svc/rundeck 30440:4440
+```
+
 # 1. Configurar o projeto via API
 ```bash
-RUNDECK_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-API="http://$RUNDECK_IP:30440/api/14"
+API="http://localhost:30440/api/14"
 COOKIE_JAR=$(mktemp)
 curl -s -L -c "$COOKIE_JAR" -o /dev/null \
   -d "j_username=admin&j_password=admin" \
-  "http://$RUNDECK_IP:30440/j_security_check"
+  "http://localhost:30440/j_security_check"
 ```
 
 # 2. Criar projeto

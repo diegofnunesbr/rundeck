@@ -23,9 +23,6 @@ if [ ! -f "$KEYS_DIR/rundeck" ]; then
   echo ""
 fi
 
-NODE_IP=$(kubectl get nodes \
-  -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
-
 echo "==> Aplicando manifests..."
 sed \
   -e "s|ANSIBLE_DIR|$SCRIPT_DIR/ansible|g" \
@@ -38,14 +35,20 @@ kubectl create secret generic rundeck-ssh-key \
   --namespace rundeck \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "==> Configurando URL do Rundeck ($NODE_IP)..."
+echo "==> Configurando URL do Rundeck..."
 kubectl set env deployment/rundeck -n rundeck \
-  RUNDECK_GRAILS_URL="http://$NODE_IP:30440" > /dev/null
+  RUNDECK_GRAILS_URL="https://rundeck.diegofnunesbr.com" > /dev/null
 
 echo "==> Aguardando Rundeck iniciar (pode levar ~2 min)..."
 kubectl rollout status deployment/rundeck -n rundeck --timeout=300s
 
 echo ""
-echo "Rundeck disponível em: http://$NODE_IP:30440  (admin / admin)"
+echo "Rundeck vai ficar disponível em https://rundeck.diegofnunesbr.com"
+echo "assim que cert-manager/ingress-nginx/dns estiverem prontos (ver"
+echo "repositório argocd). Até lá, ou pra configurar o projeto agora,"
+echo "use port-forward:"
+echo ""
+echo "  kubectl -n rundeck port-forward svc/rundeck 30440:4440"
+echo "  (admin / admin em http://localhost:30440)"
 echo ""
 echo "Siga o README.md para configurar o projeto e importar os jobs."

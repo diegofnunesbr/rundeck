@@ -112,10 +112,34 @@ metadata:
   name: rundeck
   namespace: rundeck
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: rundeck
   ports:
     - port: 4440
       targetPort: 4440
-      nodePort: 30440
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rundeck
+  namespace: rundeck
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-clusterissuer
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - rundeck.diegofnunesbr.com
+      secretName: rundeck-tls
+  rules:
+    - host: rundeck.diegofnunesbr.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rundeck
+                port:
+                  number: 4440
