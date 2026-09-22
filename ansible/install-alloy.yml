@@ -3,7 +3,7 @@
   hosts: "{{ target_hosts }}"
   become: true
   vars:
-    mimir_remote_write_url: "{{ globals_mimir_remote_write_url | default('http://192.168.0.4:30900/api/v1/push') }}"
+    mimir_remote_write_url: "{{ globals_mimir_remote_write_url | default('https://mimir.diegofnunesbr.com/api/v1/push') }}"
   tasks:
     - name: Instalar node_exporter
       ansible.builtin.apt:
