@@ -74,6 +74,9 @@ spec:
             - name: RUNDECK_GRAILS_URL
               value: https://rundeck.diegofnunesbr.com
 
+            - name: RUNDECK_SERVER_FORWARDED
+              value: "true"
+
           volumeMounts:
             - name: ssh-key
               mountPath: /home/rundeck/.ssh/rundeck
