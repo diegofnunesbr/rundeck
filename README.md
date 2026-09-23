@@ -26,7 +26,7 @@ rundeck/
 ├── ansible/                  # Playbooks Ansible
 │   ├── _stage_target.yml     # registra um host dinamicamente pra um run (onboarding)
 │   ├── onboard-vm.yml        # integra VM nova (usa _stage_target.yml e install-alloy.yml)
-│   ├── install-alloy.yml     # instala node_exporter + Grafana Alloy (remote_write pro Mimir com mTLS)
+│   ├── install-alloy.yml     # instala node_exporter + Grafana Alloy (remote_write pro Mimir com usuário e senha)
 │   ├── templates/
 │   │   └── config.alloy.j2
 │   ├── add-ssh-key.yml
@@ -38,7 +38,7 @@ rundeck/
 │   └── nodes.yaml            # Nodes visíveis no Rundeck
 ├── jobs/                     # Definições de jobs do Rundeck
 │   ├── onboard-vm.yaml
-│   ├── install-alloy.yaml   # reinstala o Alloy / entrega o certificado mTLS renovado
+│   ├── install-alloy.yaml   # reinstala o Alloy / entrega a senha de envio nova
 │   ├── add-ssh-key.yaml
 │   ├── remove-ssh-key.yaml
 ├── keys/                     # Chave SSH (gerada pelo deploy.sh, ignorada pelo git)
@@ -202,30 +202,26 @@ de forma permanente (não só pra aquele run), e (2) instala `node_exporter`
 repositório `mimir`) - a VM aparece com métricas no Grafana logo após o
 onboarding, sem passo manual.
 
-## Certificado mTLS do Alloy
+## Senha de envio do Alloy pro Mimir
 
-O Mimir só aceita métricas de quem apresenta um certificado de cliente
-emitido pela CA interna `mimir-agents-ca` (repositório `cert-manager`),
-mesmo modelo da empresa (gateway `telemetry-agents` com mTLS). O fluxo:
+O Mimir só aceita métricas com usuário `alloy` e senha (basic auth no
+Ingress, ver repositório `mimir`). O fluxo:
 
-1. `rundeck.yaml` pede ao cert-manager o `Certificate alloy-mtls-client`
-   (1 ano, renovado sozinho 30 dias antes de vencer).
-2. O Secret resultante é montado no pod em `/etc/alloy-mtls-client/`, e
-   acompanha as renovações sem reiniciar o pod.
+1. `mimir/change-push-password.sh` gera a senha e sela dois Secrets: o
+   hash que o Ingress do Mimir confere e a senha em si,
+   `alloy-push-password`, na namespace `rundeck`.
+2. Esse Secret é montado no pod em `/etc/alloy-push-password/`, e
+   acompanha as trocas de senha sem reiniciar o pod.
 3. `install-alloy.yml` (usado pelos jobs `onboard-vm` e `install-alloy`)
-   copia o certificado pra VM em `/etc/alloy/tls/client.crt` e
-   `client.key` (dono `alloy`, chave `0600`), e o Alloy usa no
-   `tls_config` do `remote_write`.
+   copia a senha pra VM em `/etc/alloy/push-password` (dono `alloy`,
+   `0600`), e o Alloy usa no `basic_auth` do `remote_write`.
 
-**A renovação não chega nas VMs sozinha.** Depois que o cert-manager
-renovar (ou se o cluster for recriado e nascer uma CA nova), rode o job
-`install-alloy` em cada VM que envia métricas, com o mesmo `target_hosts`
-do onboarding (ele vira o label `host`). Sem isso, a VM para de enviar
-quando o certificado antigo vencer. Pra ver a validade atual:
-
-```bash
-kubectl --context=k0s -n rundeck get certificate alloy-mtls-client -o jsonpath='{.status.notAfter}'
-```
+A senha não vence, então não tem manutenção periódica. Só depois de
+trocar a senha é preciso reentregar pras VMs: o próprio
+`change-push-password.sh` faz isso se receber os IPs
+(`./change-push-password.sh 192.168.0.4 192.168.0.10`); senão, rode o job
+`install-alloy` em cada VM, com o mesmo `target_hosts` do onboarding (ele
+vira o label `host`).
 
 ## Verificar o onboarding
 
@@ -237,7 +233,7 @@ curl -s -G 'http://localhost:8080/prometheus/api/v1/query' \
 ```
 
 A consulta é pelo `port-forward` porque o Ingress do Mimir só expõe o
-envio (`/api/v1/push`), e ainda exige o certificado.
+envio (`/api/v1/push`), e ainda exige usuário e senha.
 
 ## Troubleshooting: "Permission denied (publickey,password)" no onboard-vm
 

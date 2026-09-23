@@ -6,7 +6,6 @@
   become: true
   vars:
     mimir_remote_write_url: "{{ globals_mimir_remote_write_url | default('https://mimir.diegofnunesbr.com/api/v1/push') }}"
-    alloy_mtls_source_dir: /etc/alloy-mtls-client
     alloy_push_password_source: /etc/alloy-push-password/password
   tasks:
     - name: Instalar node_exporter
@@ -38,32 +37,6 @@
         state: present
         update_cache: true
 
-    - name: Criar /etc/alloy/tls
-      ansible.builtin.file:
-        path: /etc/alloy/tls
-        state: directory
-        owner: alloy
-        group: alloy
-        mode: "0750"
-
-    - name: Copiar certificado de cliente do mTLS
-      ansible.builtin.copy:
-        src: "{{ alloy_mtls_source_dir }}/tls.crt"
-        dest: /etc/alloy/tls/client.crt
-        owner: alloy
-        group: alloy
-        mode: "0640"
-      notify: Reiniciar Alloy
-
-    - name: Copiar chave do certificado de cliente do mTLS
-      ansible.builtin.copy:
-        src: "{{ alloy_mtls_source_dir }}/tls.key"
-        dest: /etc/alloy/tls/client.key
-        owner: alloy
-        group: alloy
-        mode: "0600"
-      notify: Reiniciar Alloy
-
     - name: Copiar senha de envio pro Mimir
       ansible.builtin.copy:
         src: "{{ alloy_push_password_source }}"
@@ -72,6 +45,11 @@
         group: alloy
         mode: "0600"
       notify: Reiniciar Alloy
+
+    - name: Remover o certificado do mTLS antigo
+      ansible.builtin.file:
+        path: /etc/alloy/tls
+        state: absent
 
     - name: Renderizar /etc/alloy/config.alloy
       ansible.builtin.template:
