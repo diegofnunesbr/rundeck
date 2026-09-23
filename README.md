@@ -13,8 +13,8 @@ Rundeck é uma plataforma de automação de operações que permite criar, agend
   fixos nesse caminho (o ArgoCD aplica o manifesto como está no git, não
   tem como descobrir onde o repo foi clonado). Mudou o caminho? Ajuste os
   dois `hostPath` em `rundeck.yaml`.
-- `cert-manager` e `ingress-nginx` instalados (repositório `cert-manager`
-  e `core-config` do repositório `argocd`) e DNS `rundeck.diegofnunesbr.com`
+- `cert-manager` e `ingress-nginx` instalados (repositórios
+  `cert-manager` e `ingress-nginx`) e DNS `rundeck.diegofnunesbr.com`
   apontando pro node (repositório `dns`) - **não são pré-requisito pra
   rodar `deploy.sh`**, só pra `https://rundeck.diegofnunesbr.com` ficar
   acessível depois. Sem eles, use port-forward (seção "Configuração").
