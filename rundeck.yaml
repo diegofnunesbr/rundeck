@@ -97,6 +97,10 @@ spec:
               subPath: realm.properties
               readOnly: true
 
+            - name: alloy-mtls-client
+              mountPath: /etc/alloy-mtls-client
+              readOnly: true
+
       volumes:
         - name: ssh-key
           secret:
@@ -121,6 +125,31 @@ spec:
           secret:
             secretName: rundeck-realm
             defaultMode: 0440
+
+        - name: alloy-mtls-client
+          secret:
+            secretName: alloy-mtls-client
+            defaultMode: 0440
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: alloy-mtls-client
+  namespace: rundeck
+spec:
+  secretName: alloy-mtls-client
+  commonName: alloy-homelab
+  duration: 8760h
+  renewBefore: 720h
+  usages:
+    - client auth
+    - digital signature
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: mimir-agents-ca
+    kind: ClusterIssuer
 ---
 apiVersion: v1
 kind: Service

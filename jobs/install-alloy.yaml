@@ -1,0 +1,38 @@
+- name: install-alloy
+  description: |
+    (Re)instala o Grafana Alloy + node_exporter numa VM e entrega o
+    certificado de cliente do mTLS (alloy-mtls-client, emitido pelo
+    cert-manager e montado no pod do Rundeck em /etc/alloy-mtls-client).
+
+    Rode quando o cert-manager renovar o certificado (1x por ano, 30 dias
+    antes de vencer) ou depois de recriar o cluster, em cada VM que envia
+    métricas pro Mimir. Não precisa estar no inventário estático.
+
+    Idempotente: pode rodar de novo na mesma VM sem efeito colateral.
+  group: onboarding
+  loglevel: INFO
+  executionEnabled: true
+  scheduleEnabled: false
+  options:
+    - name: target_hosts
+      required: true
+      description: |
+        IP ou hostname da VM. Use o mesmo valor do onboarding (ele vira o
+        label host das métricas).
+  sequence:
+    keepgoing: false
+    strategy: node-first
+    commands:
+      - description: Instalar Alloy e certificado mTLS em ${option.target_hosts}
+        type: com.batix.rundeck.plugins.AnsiblePlaybookWorkflowStep
+        nodeStep: false
+        configuration:
+          ansible-playbook: install-alloy.yml
+          ansible-base-dir-path: ${globals.ansible_dir}
+          ansible-generate-inventory: 'false'
+          ansible-disable-limit: 'true'
+          ansible-extra-param: -e target_hosts=${option.target_hosts}
+          ansible-ssh-user: rundeck
+          ansible-ssh-key-storage-path: keys/project/foundation/ssh-key
+          ansible-become: 'true'
+  uuid: 3f9c1e7a-5b2d-4c8e-9a6f-1d7e2b4c8a90

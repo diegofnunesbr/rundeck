@@ -26,7 +26,7 @@ rundeck/
 ├── ansible/                  # Playbooks Ansible
 │   ├── _stage_target.yml     # registra um host dinamicamente pra um run (onboarding)
 │   ├── onboard-vm.yml        # integra VM nova (usa _stage_target.yml e install-alloy.yml)
-│   ├── install-alloy.yml     # instala node_exporter + Grafana Alloy (remote_write pro Mimir)
+│   ├── install-alloy.yml     # instala node_exporter + Grafana Alloy (remote_write pro Mimir com mTLS)
 │   ├── templates/
 │   │   └── config.alloy.j2
 │   ├── add-ssh-key.yml
@@ -38,6 +38,7 @@ rundeck/
 │   └── nodes.yaml            # Nodes visíveis no Rundeck
 ├── jobs/                     # Definições de jobs do Rundeck
 │   ├── onboard-vm.yaml
+│   ├── install-alloy.yaml   # reinstala o Alloy / entrega o certificado mTLS renovado
 │   ├── add-ssh-key.yaml
 │   ├── remove-ssh-key.yaml
 ├── keys/                     # Chave SSH (gerada pelo deploy.sh, ignorada pelo git)
@@ -201,13 +202,42 @@ de forma permanente (não só pra aquele run), e (2) instala `node_exporter`
 repositório `mimir`) - a VM aparece com métricas no Grafana logo após o
 onboarding, sem passo manual.
 
+## Certificado mTLS do Alloy
+
+O Mimir só aceita métricas de quem apresenta um certificado de cliente
+emitido pela CA interna `mimir-agents-ca` (repositório `cert-manager`),
+mesmo modelo da empresa (gateway `telemetry-agents` com mTLS). O fluxo:
+
+1. `rundeck.yaml` pede ao cert-manager o `Certificate alloy-mtls-client`
+   (1 ano, renovado sozinho 30 dias antes de vencer).
+2. O Secret resultante é montado no pod em `/etc/alloy-mtls-client/`, e
+   acompanha as renovações sem reiniciar o pod.
+3. `install-alloy.yml` (usado pelos jobs `onboard-vm` e `install-alloy`)
+   copia o certificado pra VM em `/etc/alloy/tls/client.crt` e
+   `client.key` (dono `alloy`, chave `0600`), e o Alloy usa no
+   `tls_config` do `remote_write`.
+
+**A renovação não chega nas VMs sozinha.** Depois que o cert-manager
+renovar (ou se o cluster for recriado e nascer uma CA nova), rode o job
+`install-alloy` em cada VM que envia métricas, com o mesmo `target_hosts`
+do onboarding (ele vira o label `host`). Sem isso, a VM para de enviar
+quando o certificado antigo vencer. Pra ver a validade atual:
+
+```bash
+kubectl --context=k0s -n rundeck get certificate alloy-mtls-client -o jsonpath='{.status.notAfter}'
+```
+
 ## Verificar o onboarding
 
 ```bash
 ssh rundeck@<ip-da-vm> "systemctl is-active prometheus-node-exporter alloy"
-curl -s -G 'http://<ip-do-node-k0s>:30900/prometheus/api/v1/query' \
+kubectl --context=k0s -n mimir port-forward svc/mimir 8080:8080 &
+curl -s -G 'http://localhost:8080/prometheus/api/v1/query' \
   --data-urlencode 'query=up{host="<ip-da-vm>"}'
 ```
+
+A consulta é pelo `port-forward` porque o Ingress do Mimir só expõe o
+envio (`/api/v1/push`), e ainda exige o certificado.
 
 ## Troubleshooting: "Permission denied (publickey,password)" no onboard-vm
 
