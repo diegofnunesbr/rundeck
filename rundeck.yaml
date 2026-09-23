@@ -97,10 +97,6 @@ spec:
               subPath: realm.properties
               readOnly: true
 
-            - name: alloy-push-password
-              mountPath: /etc/alloy-push-password
-              readOnly: true
-
       volumes:
         - name: ssh-key
           secret:
@@ -124,11 +120,6 @@ spec:
         - name: realm
           secret:
             secretName: rundeck-realm
-            defaultMode: 0440
-
-        - name: alloy-push-password
-          secret:
-            secretName: alloy-push-password
             defaultMode: 0440
 ---
 apiVersion: v1

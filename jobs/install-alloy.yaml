@@ -1,12 +1,10 @@
 - name: install-alloy
   description: |
-    (Re)instala o Grafana Alloy + node_exporter numa VM e entrega a senha
-    de envio pro Mimir (Secret alloy-push-password, montado no pod do
-    Rundeck em /etc/alloy-push-password).
+    (Re)instala o Grafana Alloy + node_exporter numa VM, com a config de
+    envio pro Mimir (templates/config.alloy.j2).
 
-    Rode depois de trocar a senha com mimir/change-push-password.sh (ou
-    passe os IPs pro próprio script, que chama este mesmo playbook), em
-    cada VM que envia métricas. Não precisa estar no inventário estático.
+    Rode depois de mudar o template ou o playbook, em cada VM que envia
+    métricas. Não precisa estar no inventário estático.
 
     Idempotente: pode rodar de novo na mesma VM sem efeito colateral.
   group: onboarding

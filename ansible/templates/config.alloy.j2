@@ -6,11 +6,6 @@ prometheus.scrape "node" {
 prometheus.remote_write "mimir" {
   endpoint {
     url = "{{ mimir_remote_write_url }}"
-
-    basic_auth {
-      username      = "alloy"
-      password_file = "/etc/alloy/push-password"
-    }
   }
 
   external_labels = {

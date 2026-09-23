@@ -26,7 +26,7 @@ rundeck/
 ├── ansible/                  # Playbooks Ansible
 │   ├── _stage_target.yml     # registra um host dinamicamente pra um run (onboarding)
 │   ├── onboard-vm.yml        # integra VM nova (usa _stage_target.yml e install-alloy.yml)
-│   ├── install-alloy.yml     # instala node_exporter + Grafana Alloy (remote_write pro Mimir com usuário e senha)
+│   ├── install-alloy.yml     # instala node_exporter + Grafana Alloy (remote_write pro Mimir)
 │   ├── templates/
 │   │   └── config.alloy.j2
 │   ├── add-ssh-key.yml
@@ -38,7 +38,7 @@ rundeck/
 │   └── nodes.yaml            # Nodes visíveis no Rundeck
 ├── jobs/                     # Definições de jobs do Rundeck
 │   ├── onboard-vm.yaml
-│   ├── install-alloy.yaml   # reinstala o Alloy / entrega a senha de envio nova
+│   ├── install-alloy.yaml   # reinstala o Alloy numa VM (ex.: depois de mudar o template)
 │   ├── add-ssh-key.yaml
 │   ├── remove-ssh-key.yaml
 ├── keys/                     # Chave SSH (gerada pelo deploy.sh, ignorada pelo git)
@@ -202,27 +202,6 @@ de forma permanente (não só pra aquele run), e (2) instala `node_exporter`
 repositório `mimir`) - a VM aparece com métricas no Grafana logo após o
 onboarding, sem passo manual.
 
-## Senha de envio do Alloy pro Mimir
-
-O Mimir só aceita métricas com usuário `alloy` e senha (basic auth no
-Ingress, ver repositório `mimir`). O fluxo:
-
-1. `mimir/change-push-password.sh` gera a senha e sela dois Secrets: o
-   hash que o Ingress do Mimir confere e a senha em si,
-   `alloy-push-password`, na namespace `rundeck`.
-2. Esse Secret é montado no pod em `/etc/alloy-push-password/`, e
-   acompanha as trocas de senha sem reiniciar o pod.
-3. `install-alloy.yml` (usado pelos jobs `onboard-vm` e `install-alloy`)
-   copia a senha pra VM em `/etc/alloy/push-password` (dono `alloy`,
-   `0600`), e o Alloy usa no `basic_auth` do `remote_write`.
-
-A senha não vence, então não tem manutenção periódica. Só depois de
-trocar a senha é preciso reentregar pras VMs: o próprio
-`change-push-password.sh` faz isso se receber os IPs
-(`./change-push-password.sh 192.168.0.4 192.168.0.10`); senão, rode o job
-`install-alloy` em cada VM, com o mesmo `target_hosts` do onboarding (ele
-vira o label `host`).
-
 ## Verificar o onboarding
 
 ```bash
@@ -232,8 +211,8 @@ curl -s -G 'http://localhost:8080/prometheus/api/v1/query' \
   --data-urlencode 'query=up{host="<ip-da-vm>"}'
 ```
 
-A consulta é pelo `port-forward` porque o Ingress do Mimir só expõe o
-envio (`/api/v1/push`), e ainda exige usuário e senha.
+Também dá pra consultar direto pelo domínio, que é aberto:
+`https://mimir.diegofnunesbr.com/prometheus/api/v1/query`.
 
 ## Troubleshooting: "Permission denied (publickey,password)" no onboard-vm
 

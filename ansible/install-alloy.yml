@@ -6,7 +6,6 @@
   become: true
   vars:
     mimir_remote_write_url: "{{ globals_mimir_remote_write_url | default('https://mimir.diegofnunesbr.com/api/v1/push') }}"
-    alloy_push_password_source: /etc/alloy-push-password/password
   tasks:
     - name: Instalar node_exporter
       ansible.builtin.apt:
@@ -37,14 +36,10 @@
         state: present
         update_cache: true
 
-    - name: Copiar senha de envio pro Mimir
-      ansible.builtin.copy:
-        src: "{{ alloy_push_password_source }}"
-        dest: /etc/alloy/push-password
-        owner: alloy
-        group: alloy
-        mode: "0600"
-      notify: Reiniciar Alloy
+    - name: Remover a senha de envio antiga
+      ansible.builtin.file:
+        path: /etc/alloy/push-password
+        state: absent
 
     - name: Renderizar /etc/alloy/config.alloy
       ansible.builtin.template:
