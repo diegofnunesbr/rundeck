@@ -1,0 +1,20 @@
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  annotations:
+    sealedsecrets.bitnami.com/cluster-wide: "true"
+  creationTimestamp: null
+  name: rundeck-realm
+  namespace: rundeck
+spec:
+  encryptedData:
+    realm.properties: AgCii1p+g9D/zb01IAHsUX1r+lbzYAGOzTuJ7l6oyaTTtN8eqmjqbgpREEYo8HLz4VzLEOJxLp5XXU44nMj/HNrDdIbEjDoereIIVwYmShOAbrhWqzGWII2wuCPH1jkLB4NxxYTrw4jjBYnDtOMx4autLHldzQg4mcFy03q6INOwpxSYh46FRrJsnu+rQ2dThKXBY+AE9/TSQs7R/ATIOeqWCe5t6LxBdYZdNRKRQ2KrzXqZCULzR/2BIdtdzJD+9vu6c4tZeKNfu0W//PYpe9kG8XWrGTuQNejnEmHNLasmJ1IlrMHa2RfXkjils3hmKzugpAW0jWuNHU9Nxxw5aCl4rQZ94InlfmZ9DjLle6nr4fu1Xw6O7CvHJgwVHcizknoQ6tfbVIHbdpn0xb75lCdP3hh/q8hAwDd8dlYTVwgdvHd5+wrM4dc6OMrMjm8V9NUlFdVBfoxGajtTJSIKkB5cEqYFX4uxwdxUpz0sNeJMbAvpffnDRbX2vn876LZAOXc3F5J8j2xrX4Gml6toRSPKZlgCXsM7HaCrC1X+VbHWUJlOf28/4D3TNgHZMk0/UbtVFSrCfXz5X81Gyen9TNE1PrL3HIG+Fr0MDTg/b8R2pYg2lzps04csdZpYWLq95VH9WJMdp2IyJoNt3INvyq8ogk1xgCh0d3I6aTkpYYv08F89CwXDys0SmcT8j65axKhiP2LAt/xqYzoyP3rZvDn0khY+Bh9zSbft+F3Cxw==
+  template:
+    metadata:
+      annotations:
+        sealedsecrets.bitnami.com/cluster-wide: "true"
+      creationTimestamp: null
+      name: rundeck-realm
+      namespace: rundeck
+    type: Opaque
+
