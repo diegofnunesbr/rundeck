@@ -45,8 +45,33 @@ rundeck/
 │   └── argocd.rundeck.yaml   # Application do Argo CD
 ├── dockerfile                # Imagem Rundeck + Ansible
 ├── rundeck.yaml              # Manifests Kubernetes (aplicados pelo Argo CD)
+├── rundeck-realm.sealed.yaml # login do admin (realm.properties selado, aplicado pelo Argo CD)
+├── change-admin-password.sh  # define/troca a senha do admin
 └── deploy.sh                 # Bootstrap: imagem local, chave SSH e Application
 ```
+
+## Senha do admin
+
+O login vem de um `realm.properties` guardado no SealedSecret
+`rundeck-realm.sealed.yaml`, montado por cima do arquivo que vem na imagem
+(que tem as senhas padrão `admin`/`admin` e `user`/`user`). Só existe o
+usuário `admin`. Pra definir (cluster novo, com outra chave do Sealed
+Secrets) ou trocar a senha, rode do seu clone que faz `git push`
+(precisa de `kubeseal` e do contexto `k0s`, ver README do repositório
+`argocd`, seção "Acessar o cluster de fora da VM"):
+
+```bash
+./change-admin-password.sh
+```
+
+Pede a senha sem ecoar, sela, faz commit + push, espera o Argo CD
+sincronizar e reinicia o pod (o arquivo é montado com `subPath`, que não
+atualiza sozinho). A senha não pode ter vírgula, nem começar/terminar com
+espaço: é o formato do `realm.properties` (`usuario:senha,papel,...`).
+A imagem só suporta os formatos de senha básicos do Jetty (texto, `MD5:`,
+`CRYPT:`, sem bcrypt), então a senha fica em texto dentro do Secret - o
+mesmo nível de proteção das senhas do Jenkins e do Grafana: selada no
+git, legível só por quem já é admin do cluster.
 
 ## Instalação
 
@@ -111,9 +136,11 @@ kubectl -n rundeck port-forward svc/rundeck 30440:4440
 ```bash
 API="http://localhost:30440/api/14"
 COOKIE_JAR=$(mktemp)
-curl -s -L -c "$COOKIE_JAR" -o /dev/null \
-  -d "j_username=admin&j_password=admin" \
+read -rsp "Senha do admin do Rundeck: " RD_PW; echo
+printf '%s' "$RD_PW" | curl -s -L -c "$COOKIE_JAR" -o /dev/null \
+  -d "j_username=admin" --data-urlencode "j_password@-" \
   "http://localhost:30440/j_security_check"
+unset RD_PW
 ```
 
 # 2. Criar projeto

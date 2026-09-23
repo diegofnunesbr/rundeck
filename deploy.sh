@@ -35,6 +35,15 @@ kubectl apply -f "$SCRIPT_DIR/applications/argocd.rundeck.yaml"
 
 echo "==> Aguardando Rundeck iniciar (pode levar ~2 min)..."
 until kubectl -n rundeck get deployment rundeck >/dev/null 2>&1; do sleep 5; done
+kubectl -n rundeck get secret rundeck-realm >/dev/null 2>&1 || sleep 30
+if ! kubectl -n rundeck get secret rundeck-realm >/dev/null 2>&1; then
+  echo ""
+  echo "O secret rundeck-realm (senha do admin) não existe neste cluster, então"
+  echo "o pod fica esperando. Rode ./change-admin-password.sh a partir do seu"
+  echo "clone que faz git push (ver README, seção \"Senha do admin\"); o pod"
+  echo "sobe sozinho depois disso."
+  exit 0
+fi
 kubectl rollout status deployment/rundeck -n rundeck --timeout=300s
 
 echo ""
@@ -44,6 +53,6 @@ echo "repositório argocd). Até lá, ou pra configurar o projeto agora,"
 echo "use port-forward:"
 echo ""
 echo "  kubectl -n rundeck port-forward svc/rundeck 30440:4440"
-echo "  (admin / admin em http://localhost:30440)"
+echo "  (login admin + senha definida pelo change-admin-password.sh, em http://localhost:30440)"
 echo ""
 echo "Siga o README.md para configurar o projeto e importar os jobs."
