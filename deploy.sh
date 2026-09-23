@@ -23,23 +23,18 @@ if [ ! -f "$KEYS_DIR/rundeck" ]; then
   echo ""
 fi
 
-echo "==> Aplicando manifests..."
-sed \
-  -e "s|ANSIBLE_DIR|$SCRIPT_DIR/ansible|g" \
-  -e "s|INVENTORY_DIR|$SCRIPT_DIR/inventory|g" \
-  "$SCRIPT_DIR/rundeck.yaml" | kubectl apply -f -
-
-echo "==> Criando secret SSH..."
+echo "==> Criando namespace e secret SSH..."
+kubectl create namespace rundeck --dry-run=client -o yaml | kubectl apply -f -
 kubectl create secret generic rundeck-ssh-key \
   --from-file=rundeck="$KEYS_DIR/rundeck" \
   --namespace rundeck \
   --dry-run=client -o yaml | kubectl apply -f -
 
-echo "==> Configurando URL do Rundeck..."
-kubectl set env deployment/rundeck -n rundeck \
-  RUNDECK_GRAILS_URL="https://rundeck.diegofnunesbr.com" > /dev/null
+echo "==> Aplicando Application do Argo CD..."
+kubectl apply -f "$SCRIPT_DIR/applications/argocd.rundeck.yaml"
 
 echo "==> Aguardando Rundeck iniciar (pode levar ~2 min)..."
+until kubectl -n rundeck get deployment rundeck >/dev/null 2>&1; do sleep 5; done
 kubectl rollout status deployment/rundeck -n rundeck --timeout=300s
 
 echo ""

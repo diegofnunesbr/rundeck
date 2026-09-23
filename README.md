@@ -6,10 +6,13 @@ Rundeck é uma plataforma de automação de operações que permite criar, agend
 
 - Kubernetes (k0s, single-node)
 - kubectl, Docker
-- **`deploy.sh` precisa rodar direto no node do cluster** (ex.: `vm-ubuntu`),
-  não numa máquina remota - os volumes `ansible-playbooks`/`ansible-inventory`
-  em `rundeck.yaml` são `hostPath`, ou seja, apontam pro filesystem do node
-  onde o pod é agendado, não pra máquina de onde você roda o `deploy.sh`.
+- ArgoCD instalado (ver repositório `argocd`)
+- **O repo precisa estar clonado em `/home/diegofnunesbr/rundeck` no node
+  do cluster** (`vm-ubuntu`), e o `deploy.sh` roda lá - os volumes
+  `ansible-playbooks`/`ansible-inventory` em `rundeck.yaml` são `hostPath`
+  fixos nesse caminho (o ArgoCD aplica o manifesto como está no git, não
+  tem como descobrir onde o repo foi clonado). Mudou o caminho? Ajuste os
+  dois `hostPath` em `rundeck.yaml`.
 - `cert-manager` e `ingress-nginx` instalados (repositório `cert-manager`
   e `core-config` do repositório `argocd`) e DNS `rundeck.diegofnunesbr.com`
   apontando pro node (repositório `dns`) - **não são pré-requisito pra
@@ -38,9 +41,11 @@ rundeck/
 │   ├── add-ssh-key.yaml
 │   ├── remove-ssh-key.yaml
 ├── keys/                     # Chave SSH (gerada pelo deploy.sh, ignorada pelo git)
+├── applications/
+│   └── argocd.rundeck.yaml   # Application do Argo CD
 ├── dockerfile                # Imagem Rundeck + Ansible
-├── rundeck.yaml              # Manifests Kubernetes
-└── deploy.sh                 # Script de instalação
+├── rundeck.yaml              # Manifests Kubernetes (aplicados pelo Argo CD)
+└── deploy.sh                 # Bootstrap: imagem local, chave SSH e Application
 ```
 
 ## Instalação
@@ -53,12 +58,15 @@ Clone o repositório e ajuste os arquivos abaixo antes de executar:
 | `inventory/nodes.yaml` | IP e nome dos nodes visíveis no Rundeck |
 
 ```bash
-git clone https://github.com/diegofnunesbr/rundeck.git
-cd rundeck
+git clone https://github.com/diegofnunesbr/rundeck.git /home/diegofnunesbr/rundeck
+cd /home/diegofnunesbr/rundeck
 ./deploy.sh
 ```
 
-O script faz o build da imagem Docker, gera a chave SSH, cria os recursos no Kubernetes e aguarda o Rundeck inicializar (~2 min). No final exibe o IP para acesso.
+O script faz o build da imagem Docker e importa no containerd do k0s, gera a
+chave SSH e cria o secret `rundeck-ssh-key` (ambos ficam fora do git), e
+aplica a Application do Argo CD, que cuida do resto (`rundeck.yaml`). Depois
+disso, qualquer mudança em `rundeck.yaml` só tem efeito após `git push`.
 
 ## Preparar hosts
 
