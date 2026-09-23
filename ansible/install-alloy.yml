@@ -36,11 +36,6 @@
         state: present
         update_cache: true
 
-    - name: Remover a senha de envio antiga
-      ansible.builtin.file:
-        path: /etc/alloy/push-password
-        state: absent
-
     - name: Renderizar /etc/alloy/config.alloy
       ansible.builtin.template:
         src: templates/config.alloy.j2
