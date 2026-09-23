@@ -46,11 +46,6 @@
         mode: "0600"
       notify: Reiniciar Alloy
 
-    - name: Remover o certificado do mTLS antigo
-      ansible.builtin.file:
-        path: /etc/alloy/tls
-        state: absent
-
     - name: Renderizar /etc/alloy/config.alloy
       ansible.builtin.template:
         src: templates/config.alloy.j2
