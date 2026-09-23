@@ -1,5 +1,5 @@
 prometheus.scrape "node" {
-  targets = [{"__address__" = "localhost:9100"}]
+  targets = [{"__address__" = "localhost:9100", "instance" = "{{ ansible_hostname }}"}]
   forward_to = [prometheus.remote_write.mimir.receiver]
 }
 
