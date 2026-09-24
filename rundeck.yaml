@@ -16,6 +16,47 @@ spec:
     requests:
       storage: 2Gi
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rundeck-acl
+  namespace: rundeck
+data:
+  rundeck-admins.aclpolicy: |
+    description: Admin, all access (grupo rundeck-admins do Keycloak).
+    context:
+      project: '.*'
+    for:
+      resource:
+        - allow: '*'
+      adhoc:
+        - allow: '*'
+      job:
+        - allow: '*'
+      node:
+        - allow: '*'
+      runner:
+        - allow: '*'
+    by:
+      group: rundeck-admins
+
+    ---
+
+    description: Admin, all access (grupo rundeck-admins do Keycloak).
+    context:
+      application: 'rundeck'
+    for:
+      resource:
+        - allow: '*'
+      project:
+        - allow: '*'
+      project_acl:
+        - allow: '*'
+      storage:
+        - allow: '*'
+    by:
+      group: rundeck-admins
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -77,6 +118,27 @@ spec:
             - name: RUNDECK_SERVER_FORWARDED
               value: "true"
 
+            - name: RUNDECK_PREAUTH_ENABLED
+              value: "true"
+
+            - name: RUNDECK_PREAUTH_USERNAME_HEADER
+              value: X-Forwarded-Preferred-Username
+
+            - name: RUNDECK_PREAUTH_ROLES_HEADER
+              value: X-Forwarded-Groups
+
+            - name: RUNDECK_PREAUTH_ATTRIBUTE_NAME
+              value: REMOTE_USER_GROUPS
+
+            - name: RUNDECK_PREAUTH_DELIMITER
+              value: ","
+
+            - name: RUNDECK_PREAUTH_REDIRECT_LOGOUT
+              value: "true"
+
+            - name: RUNDECK_PREAUTH_REDIRECT_URL
+              value: "/oauth2/sign_out?rd=https%3A%2F%2Fkeycloak.diegofnunesbr.com%2Frealms%2Fhome%2Fprotocol%2Fopenid-connect%2Flogout%3Fid_token_hint%3D%7Bid_token%7D%26post_logout_redirect_uri%3Dhttps%3A%2F%2Frundeck.diegofnunesbr.com"
+
           volumeMounts:
             - name: ssh-key
               mountPath: /home/rundeck/.ssh/rundeck
@@ -96,6 +158,46 @@ spec:
               mountPath: /home/rundeck/server/config/realm.properties
               subPath: realm.properties
               readOnly: true
+
+            - name: acl
+              mountPath: /home/rundeck/etc/rundeck-admins.aclpolicy
+              subPath: rundeck-admins.aclpolicy
+              readOnly: true
+
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+          imagePullPolicy: IfNotPresent
+
+          args:
+            - --http-address=0.0.0.0:4180
+            - --upstream=http://127.0.0.1:4440/
+            - --provider=oidc
+            - --oidc-issuer-url=https://keycloak.diegofnunesbr.com/realms/home
+            - --redirect-url=https://rundeck.diegofnunesbr.com/oauth2/callback
+            - --email-domain=*
+            - --pass-user-headers=true
+            - --skip-provider-button=true
+            - --cookie-secure=true
+            - --whitelist-domain=keycloak.diegofnunesbr.com
+
+          env:
+            - name: OAUTH2_PROXY_CLIENT_ID
+              value: rundeck
+
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: rundeck-oidc
+                  key: clientSecret
+
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: rundeck-oidc
+                  key: cookieSecret
+
+          ports:
+            - containerPort: 4180
 
       volumes:
         - name: ssh-key
@@ -121,6 +223,10 @@ spec:
           secret:
             secretName: rundeck-realm
             defaultMode: 0440
+
+        - name: acl
+          configMap:
+            name: rundeck-acl
 ---
 apiVersion: v1
 kind: Service
@@ -132,7 +238,12 @@ spec:
   selector:
     app: rundeck
   ports:
-    - port: 4440
+    - name: web
+      port: 4180
+      targetPort: 4180
+
+    - name: direct
+      port: 4440
       targetPort: 4440
 ---
 apiVersion: networking.k8s.io/v1
@@ -158,4 +269,4 @@ spec:
               service:
                 name: rundeck
                 port:
-                  number: 4440
+                  number: 4180

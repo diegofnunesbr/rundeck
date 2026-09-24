@@ -10,7 +10,7 @@ spec:
     targetRevision: main
     path: .
     directory:
-      include: "{rundeck.yaml,rundeck-realm.sealed.yaml}"
+      include: "{rundeck.yaml,rundeck-realm.sealed.yaml,rundeck-oidc.sealed.yaml}"
   destination:
     server: https://kubernetes.default.svc
     namespace: rundeck

@@ -46,7 +46,8 @@ rundeck/
 │   └── argocd.rundeck.yaml   # Application do Argo CD
 ├── dockerfile                # Imagem Rundeck + Ansible
 ├── rundeck.yaml              # Manifests Kubernetes (aplicados pelo Argo CD)
-├── rundeck-realm.sealed.yaml # login do admin (realm.properties selado, aplicado pelo Argo CD)
+├── rundeck-realm.sealed.yaml # login do admin local (realm.properties selado, fallback, ver "Login pelo Keycloak")
+├── rundeck-oidc.sealed.yaml  # client secret + cookie secret do oauth2-proxy (selado, aplicado pelo Argo CD)
 ├── change-admin-password.sh  # define/troca a senha do admin
 └── deploy.sh                 # Bootstrap: imagem local, chave SSH e Application
 ```
@@ -73,6 +74,56 @@ A imagem só suporta os formatos de senha básicos do Jetty (texto, `MD5:`,
 `CRYPT:`, sem bcrypt), então a senha fica em texto dentro do Secret - o
 mesmo nível de proteção das senhas do Jenkins e do Grafana: selada no
 git, legível só por quem já é admin do cluster.
+
+## Login pelo Keycloak (SSO)
+
+O Rundeck Open Source não tem OIDC nativo (isso é recurso da versão
+Enterprise), então quem faz a autenticação é um sidecar
+[`oauth2-proxy`](https://oauth2-proxy.github.io/oauth2-proxy/) no mesmo
+pod, na frente do Rundeck. O Rundeck confia no usuário/grupos que vêm
+nos headers HTTP do proxy ("modo pré-autenticado", nativo do Rundeck,
+sem plugin) - é o mesmo padrão da empresa (`Keycloak.txt`).
+
+```text
+Ingress → Service:4180 (oauth2-proxy) → valida com o Keycloak
+                                       → injeta X-Forwarded-Preferred-Username
+                                         e X-Forwarded-Groups
+                                       → localhost:4440 (Rundeck)
+```
+
+`rundeck.yaml` configura os dois lados:
+- **oauth2-proxy**: `--provider=oidc` apontando pro realm `home`
+  (repositório `keycloak`), `--pass-user-headers=true` (manda os headers
+  acima pro Rundeck) e `--upstream=http://127.0.0.1:4440/` (fala com o
+  Rundeck direto, sem passar pela rede do cluster).
+- **Rundeck**: `RUNDECK_PREAUTH_*` (modo pré-autenticado nativo, variáveis
+  de ambiente da imagem oficial) lê `X-Forwarded-Preferred-Username` como
+  usuário e `X-Forwarded-Groups` como grupos/papéis.
+
+Quem estiver no grupo `rundeck-admins` do Keycloak vira admin: a ACL
+`rundeck-admins.aclpolicy` (ConfigMap em `rundeck.yaml`, mesmo conteúdo do
+`admin.aclpolicy` que já vem na imagem, só trocando `group: admin` por
+`group: rundeck-admins`) dá acesso total pra esse grupo. Ninguém mais
+entra (sem grupo, sem acesso a nada).
+
+O client secret do Keycloak e o cookie secret do oauth2-proxy ficam
+selados em `rundeck-oidc.sealed.yaml`.
+
+**Sign out** funciona de ponta a ponta: o Rundeck redireciona pro
+`/oauth2/sign_out` do proxy (que limpa o cookie) com um `rd=` apontando
+pro endpoint de logout do Keycloak (com `id_token_hint`, preenchido
+automaticamente pelo oauth2-proxy) - sem isso, o logout só derrubaria a
+sessão do Rundeck e o Keycloak logaria de volta sozinho.
+
+**A Service continua expondo a porta `4440` direto** (nome `direct`,
+sem passar pelo oauth2-proxy) - é o que os `curl`/`j_security_check` da
+seção "Configuração" usam, com o login local (`admin` + senha selada em
+`rundeck-realm.sealed.yaml`). Essa porta não é exposta pelo Ingress, só
+via port-forward - é o plano B se o Keycloak cair, igual ao Jenkins e ao
+Grafana.
+
+Pra dar acesso a alguém: no Keycloak, realm `home`, coloque o usuário no
+grupo `rundeck-admins`.
 
 ## Instalação
 

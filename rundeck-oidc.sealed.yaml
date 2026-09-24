@@ -1,0 +1,20 @@
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  annotations:
+    sealedsecrets.bitnami.com/cluster-wide: "true"
+  creationTimestamp: null
+  name: rundeck-oidc
+  namespace: rundeck
+spec:
+  encryptedData:
+    clientSecret: AgC11O55jVYy1AXNAyfptgox9okAwFjtOkYBLVsnbJKYuCP+eQCg85tEsahb9ZxbeyJMilswFEjm+sXzpf31eWBgUKabmaucjHmCHsB4eDh6Y2nodNep1KBy+qEtpJeCnDzSjTS+VmPhXhK2xP+gPlb6xDoeSM0cz0yR/BEgfn+K5xUCRejv1PLPggEL4O1mAXQe/zNay2g/rP9vmW8V+NyejssFoMMQ3nWsvgXoS5UnbFTOLrroTIVUWi6SwYmtP63VjdRz6b6FJTKLeBOM9fyA/GBY3YtgNon1+H2S6PimW6unmWLd5B3ZmVoZk++qeNHxGSk3OOkJVipEnoX4bzlrR+H/e4Y4EyMKSb76FrmcR3i/kV3yEUAWd14vN+0K6fgSTOpV7isVEqW7U0QQSubB6Hv//Vd+wQxRD/ykxO8aauKiPZUsEvdq7Zu1stc5Jwu30RtDBq+NKgG3p7XhHA0RY2Zonafd30cth0pc5L3K7LP5HAsYIlI8hRIn4znPciF/KQdL6TCxqM/XU6YCFRHYY9M/j+OGWlN3bHdYMKULrTOjresbZHBbiBcDe+KaDDyHD6DhjesWgfDcVhsAKQJpaZ3GPmMIjAkQWhVpnvvxA+cATQz2P103JWj05qh6K1yt0utOlQ4S1VCTUttUV7Rixz01ehZR1/BvMudMyS4NffJCXQ4t60bsaYg4F8u1v9q/wa3U1S/L1V3OlbzTQFNHCf/5Rka4F7IEMtSCIgXd8xpJks0dnbrrMaGSYkSKy7NuxVQ1faZpZtQq64XpE6r+7bmJvUafmBorlEXnOCUD6+6KHcUXnw==
+    cookieSecret: AgBp0j9fG75AeFRlgw4hfluHN7JZiL1sWoQVy0xzLj86v6jFXui+K85/5tIIj9lw9kpF/JhSdOVP/iAqHW0rZJ2/aL8vyHxVnQ/+DFoF4zEiogMItlOLChSWGXeRYYTZawZMRT2fszHX+faxcGpp5MKmZ9+cPT16EGn10sAef06h8qgk6Ux8czAOqAwuMkAU33nFtKeXNT5StOkKPSJP3GNWN86/nuXvGK/MehZwqbZSuMVQ7LiAj1X0RWNfxwTSkl9b8VWKKLrWngXcbl5FwW7f/0C2OX3gxXrysR/d5SweApmXKGsKDotFAy3aIvbA7LaB6TmBIq5iTbn1nxG/k3ygPGGQXI1MuJyNTPHln01jMN4ICcUYqjsCPfWS2RTTmVsDZF0K8Fh/cEvgkaOzz4n3DGDkFqfN+qOhZRBcX6ytLxRwfC233VAQ1u0rgkPq4km1m2FtrhGCjOUgV/bC+n/kZe+CvnqKuNJxEC6gc7Fi65wc5qu8jmvtLbfbk9Zj9s46Mqo6ONpaenSK522vAm2wAPHisYU97iOw8uUjGMY3I+JWa8NKmp4aLCxXk2kjrRXmo4DkePvxTmb6ZaLaiYEbuJMAB99pw245UXiVFQmoekCeCa0BJfoTf5jWTXmO6VXhZOFyuiGvkYQ9sVaiCAMi7kG2SJAGw40wHLVJJgFFNaPdQs7QR/zNm215lLIX7MQmfQtu0dfVA//1T7KJp7HkyHMYdO8jU2hk0ImSXvVmBA==
+  template:
+    metadata:
+      annotations:
+        sealedsecrets.bitnami.com/cluster-wide: "true"
+      creationTimestamp: null
+      name: rundeck-oidc
+      namespace: rundeck
+
