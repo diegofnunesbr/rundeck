@@ -92,7 +92,7 @@ Ingress → Service:4180 (oauth2-proxy) → valida com o Keycloak
 ```
 
 `rundeck.yaml` configura os dois lados:
-- **oauth2-proxy**: `--provider=oidc` apontando pro realm `home`
+- **oauth2-proxy**: `--provider=oidc` apontando pro realm `homelab`
   (repositório `keycloak`), `--pass-user-headers=true` (manda os headers
   acima pro Rundeck) e `--upstream=http://127.0.0.1:4440/` (fala com o
   Rundeck direto, sem passar pela rede do cluster).
@@ -122,7 +122,7 @@ seção "Configuração" usam, com o login local (`admin` + senha selada em
 via port-forward - é o plano B se o Keycloak cair, igual ao Jenkins e ao
 Grafana.
 
-Pra dar acesso a alguém: no Keycloak, realm `home`, coloque o usuário no
+Pra dar acesso a alguém: no Keycloak, realm `homelab`, coloque o usuário no
 grupo `rundeck-admins`.
 
 ## Instalação
